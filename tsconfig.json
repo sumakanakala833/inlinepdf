@@ -19,7 +19,6 @@
     "noEmit": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./app/*"],
       "~/*": ["./app/*"]
     }
   }

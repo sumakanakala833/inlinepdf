@@ -94,11 +94,47 @@ export default defineConfig([
   },
   {
     name: 'ts/routes',
-    files: ['app/routes/**/*.tsx'],
+    files: ['app/routes/**/*.tsx', 'app/tools/**/route.tsx', 'app/root.tsx'],
     rules: {
       // React Router loaders and actions legitimately throw `Response`.
       '@typescript-eslint/only-throw-error': 'off',
       'react-refresh/only-export-components': 'off',
+    },
+  },
+  {
+    name: 'ts/boundaries/platform',
+    files: ['app/platform/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['~/tools/*'],
+              message:
+                'Platform modules must stay feature-agnostic. Move shared contracts into app/platform or app/shared instead.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    name: 'ts/boundaries/tool-ui',
+    files: ['app/shared/tool-ui/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['~/tools/*'],
+              message:
+                'Shared tool UI must not depend on individual tool slices.',
+            },
+          ],
+        },
+      ],
     },
   },
 ]);

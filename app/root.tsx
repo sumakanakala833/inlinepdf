@@ -6,16 +6,41 @@ import {
   Outlet,
   Scripts,
   ScrollRestoration,
+  useRouteLoaderData,
 } from 'react-router';
 
 import type { Route } from './+types/root';
-import './app.css';
+import rootStylesHref from './app.css?url';
 import { Shell } from './components/layout/shell';
-import { themeInitScript, themedIconPaths } from './lib/theme';
+import { Toaster } from './components/ui/sonner';
+import {
+  themeInitScript,
+  themedIconPaths,
+  readThemeStateFromCookieHeader,
+} from './lib/theme';
+
+export function loader({ request }: Route.LoaderArgs) {
+  return readThemeStateFromCookieHeader(request.headers.get('cookie'));
+}
+
+export const links: Route.LinksFunction = () => [
+  { rel: 'stylesheet', href: rootStylesHref },
+];
 
 export function Layout({ children }: { children: React.ReactNode }) {
+  const rootData = useRouteLoaderData<typeof loader>('root');
+  const preference = rootData?.preference ?? 'auto';
+  const resolvedTheme = rootData?.resolvedTheme ?? 'light';
+  const themedIcons = themedIconPaths[resolvedTheme];
+
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html
+      lang="en"
+      className={resolvedTheme === 'dark' ? 'dark' : undefined}
+      data-theme-preference={preference}
+      data-resolved-theme={resolvedTheme}
+      suppressHydrationWarning
+    >
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -24,33 +49,37 @@ export function Layout({ children }: { children: React.ReactNode }) {
           rel="icon"
           type="image/png"
           sizes="32x32"
-          href={themedIconPaths.light.favicon32}
+          href={themedIcons.favicon32}
         />
         <link
           id="app-shortcut-icon"
           rel="shortcut icon"
           type="image/png"
-          href={themedIconPaths.light.favicon32}
+          href={themedIcons.favicon32}
         />
         <link
           id="app-favicon-16"
           rel="icon"
           type="image/png"
           sizes="16x16"
-          href={themedIconPaths.light.favicon16}
+          href={themedIcons.favicon16}
         />
         <link
           id="app-apple-touch-icon"
           rel="apple-touch-icon"
           sizes="180x180"
-          href={themedIconPaths.light.appleTouchIcon}
+          href={themedIcons.appleTouchIcon}
         />
-        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+        <script
+          suppressHydrationWarning
+          dangerouslySetInnerHTML={{ __html: themeInitScript }}
+        />
         <Meta />
         <Links />
       </head>
       <body>
         {children}
+        <Toaster position="top-right" richColors />
         <ScrollRestoration />
         <Scripts />
       </body>
@@ -60,6 +89,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   return <Outlet />;
+}
+
+export function HydrateFallback() {
+  return <p className="p-4 text-sm text-muted-foreground">Loading app...</p>;
 }
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
@@ -98,10 +131,10 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
             Go Home
           </Link>
           <Link
-            to="/tools"
+            to="/merge"
             className="inline-flex h-10 items-center justify-center rounded-md border border-input bg-background px-4 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
           >
-            Open Tools
+            Open Merge PDF
           </Link>
         </div>
         {stack ? (

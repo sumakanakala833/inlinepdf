@@ -1,13 +1,9 @@
-import { Shell } from '~/components/layout/shell';
+import type { Route } from './+types/privacy';
 
-export function meta() {
+export const meta: Route.MetaFunction = () => {
   return [{ title: 'Privacy | InlinePDF' }];
-}
+};
 
 export default function PrivacyRoute() {
-  return (
-    <Shell>
-      <section />
-    </Shell>
-  );
+  return <section />;
 }

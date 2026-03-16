@@ -86,3 +86,78 @@ if (typeof globalThis.IntersectionObserver !== 'function') {
     value: IntersectionObserverMock,
   });
 }
+
+if (typeof globalThis.MutationObserver !== 'function') {
+  class MutationObserverMock {
+    disconnect() {
+      return undefined;
+    }
+
+    observe() {
+      return undefined;
+    }
+
+    takeRecords() {
+      return [];
+    }
+  }
+
+  Object.defineProperty(globalThis, 'MutationObserver', {
+    writable: true,
+    value: MutationObserverMock,
+  });
+}
+
+if (typeof document.getAnimations !== 'function') {
+  Object.defineProperty(document, 'getAnimations', {
+    writable: true,
+    value: () => [],
+  });
+}
+
+if (typeof Element.prototype.getAnimations !== 'function') {
+  Object.defineProperty(Element.prototype, 'getAnimations', {
+    writable: true,
+    value: () => [],
+  });
+}
+
+if (typeof Element.prototype.animate !== 'function') {
+  Object.defineProperty(Element.prototype, 'animate', {
+    writable: true,
+    value: () => ({
+      cancel: () => undefined,
+      commitStyles: () => undefined,
+      finish: () => undefined,
+      pause: () => undefined,
+      play: () => undefined,
+      reverse: () => undefined,
+      updatePlaybackRate: () => undefined,
+      finished: Promise.resolve(undefined),
+      oncancel: null,
+      onfinish: null,
+      playState: 'finished',
+    }),
+  });
+}
+
+if (typeof Element.prototype.setPointerCapture !== 'function') {
+  Object.defineProperty(Element.prototype, 'setPointerCapture', {
+    writable: true,
+    value: () => undefined,
+  });
+}
+
+if (typeof Element.prototype.releasePointerCapture !== 'function') {
+  Object.defineProperty(Element.prototype, 'releasePointerCapture', {
+    writable: true,
+    value: () => undefined,
+  });
+}
+
+if (typeof Element.prototype.hasPointerCapture !== 'function') {
+  Object.defineProperty(Element.prototype, 'hasPointerCapture', {
+    writable: true,
+    value: () => false,
+  });
+}

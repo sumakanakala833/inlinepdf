@@ -1,4 +1,4 @@
-import type { AppLoadContext, EntryContext } from 'react-router';
+import type { EntryContext } from 'react-router';
 import { ServerRouter } from 'react-router';
 import { isbot } from 'isbot';
 import { renderToReadableStream } from 'react-dom/server';
@@ -8,10 +8,7 @@ export default async function handleRequest(
   responseStatusCode: number,
   responseHeaders: Headers,
   routerContext: EntryContext,
-  loadContext: AppLoadContext,
 ) {
-  void loadContext;
-
   let shellRendered = false;
   const userAgent = request.headers.get('user-agent');
 
@@ -33,6 +30,7 @@ export default async function handleRequest(
   }
 
   responseHeaders.set('Content-Type', 'text/html');
+  responseHeaders.set('Cache-Control', 'no-store');
   return new Response(body, {
     headers: responseHeaders,
     status: responseStatusCode,

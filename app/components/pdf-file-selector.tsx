@@ -3,6 +3,15 @@ import { HugeiconsIcon } from '@hugeicons/react';
 import { type ChangeEvent, type DragEvent, useRef, useState } from 'react';
 
 import { Button } from '~/components/ui/button';
+import { Card, CardContent } from '~/components/ui/card';
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from '~/components/ui/empty';
 import { Input } from '~/components/ui/input';
 import { cn } from '~/lib/utils';
 
@@ -111,18 +120,22 @@ export function PdfFileSelector({
           variant="outline"
           disabled={disabled}
           className={cn(
-            'h-full min-h-[136px] w-full flex-col items-center justify-center gap-3 rounded-xl border-dashed bg-card px-4 py-6 text-center transition-colors sm:min-h-[156px] lg:min-h-[188px]',
+            'h-full min-h-[136px] w-full rounded-2xl border-dashed bg-transparent p-0 text-center transition-colors sm:min-h-[156px] lg:min-h-[188px]',
             !disabled && 'hover:border-primary/40 hover:bg-muted/50',
             disabled && 'cursor-not-allowed opacity-70',
           )}
           onClick={openPicker}
         >
-          <div className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-background">
-            <HugeiconsIcon icon={Add01Icon} size={20} />
-          </div>
-          <p className="text-sm font-semibold tracking-tight sm:text-base">
-            {buttonLabel ?? 'Add more files'}
-          </p>
+          <Card className="h-full w-full border-0 bg-transparent py-0 shadow-none ring-0">
+            <CardContent className="flex h-full min-h-[inherit] flex-col items-center justify-center gap-3 px-4 py-6">
+              <div className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-background">
+                <HugeiconsIcon icon={Add01Icon} size={20} />
+              </div>
+              <p className="text-sm font-semibold tracking-tight sm:text-base">
+                {buttonLabel ?? 'Add more files'}
+              </p>
+            </CardContent>
+          </Card>
         </Button>
       ) : (
         <Button
@@ -130,7 +143,7 @@ export function PdfFileSelector({
           variant="outline"
           disabled={disabled}
           className={cn(
-            'h-auto w-full flex-col rounded-xl border-dashed bg-card px-6 py-12 text-center whitespace-normal transition-colors',
+            'h-auto w-full rounded-2xl border-dashed bg-transparent p-0 text-center whitespace-normal transition-colors',
             !disabled && 'hover:border-primary/40 hover:bg-muted/50',
             isDragActive && 'border-primary/60 bg-muted/60',
             disabled && 'cursor-not-allowed opacity-70',
@@ -155,15 +168,22 @@ export function PdfFileSelector({
             commitSelection(event.dataTransfer.files);
           }}
         >
-          <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-xl border border-border bg-background">
-            <HugeiconsIcon icon={File01Icon} size={30} />
-          </div>
-          <p className="text-2xl font-semibold tracking-tight">
-            {title ?? defaultTitle}
-          </p>
-          <p className="mt-2 text-muted-foreground">
-            {description ?? defaultDescription}
-          </p>
+          <Empty className="rounded-[inherit] border-0 p-6 sm:p-10">
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <HugeiconsIcon icon={File01Icon} size={30} />
+              </EmptyMedia>
+              <EmptyTitle className="text-2xl font-semibold tracking-tight">
+                {title ?? defaultTitle}
+              </EmptyTitle>
+              <EmptyDescription>
+                {description ?? defaultDescription}
+              </EmptyDescription>
+            </EmptyHeader>
+            <EmptyContent className="text-xs text-muted-foreground sm:text-sm">
+              Drag files here or click to browse.
+            </EmptyContent>
+          </Empty>
         </Button>
       )}
     </section>

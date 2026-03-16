@@ -1,14 +1,37 @@
-import { useTheme } from "next-themes"
+import * as React from "react"
 import { Toaster as Sonner, type ToasterProps } from "sonner"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { CheckmarkCircle02Icon, InformationCircleIcon, Alert02Icon, MultiplicationSignCircleIcon, Loading03Icon } from "@hugeicons/core-free-icons"
 
 const Toaster = ({ ...props }: ToasterProps) => {
-  const { theme = "system" } = useTheme()
+  const [theme, setTheme] = React.useState<ToasterProps["theme"]>("system")
+
+  React.useEffect(() => {
+    if (typeof document === "undefined") {
+      return undefined
+    }
+
+    const syncTheme = () => {
+      const resolvedTheme = document.documentElement.dataset.resolvedTheme
+      setTheme(resolvedTheme === "dark" ? "dark" : resolvedTheme === "light" ? "light" : "system")
+    }
+
+    syncTheme()
+
+    const observer = new MutationObserver(syncTheme)
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-resolved-theme"],
+    })
+
+    return () => {
+      observer.disconnect()
+    }
+  }, [])
 
   return (
     <Sonner
-      theme={theme as ToasterProps["theme"]}
+      theme={theme}
       className="toaster group"
       icons={{
         success: (

@@ -1,6 +1,7 @@
 import { Link } from 'react-router';
 
-import { headerLogoByTheme } from '~/lib/theme';
+import { ThemedBrandImage } from '~/components/branding/themed-brand-image';
+import { SiteNavigation } from '~/shared/navigation/site-navigation';
 
 import { ThemePicker } from './theme-picker';
 import { containerClassName } from './container';
@@ -11,25 +12,18 @@ export function Header() {
       <div
         className={`${containerClassName} flex min-w-0 items-center justify-between gap-3 py-4`}
       >
-        <Link to="/" className="inline-flex items-center gap-2 tracking-tight">
-          <img
-            src={headerLogoByTheme.light}
-            alt=""
-            width={40}
-            height={40}
-            className="size-10 rounded-md dark:hidden"
-            aria-hidden="true"
-          />
-          <img
-            src={headerLogoByTheme.dark}
-            alt=""
-            width={40}
-            height={40}
-            className="hidden size-10 rounded-md dark:block"
-            aria-hidden="true"
-          />
-          <span className="text-xl font-medium">InlinePDF</span>
-        </Link>
+        <div className="flex min-w-0 items-center gap-5">
+          <Link to="/" className="inline-flex items-center gap-2 tracking-tight">
+            <ThemedBrandImage
+              alt=""
+              className="size-10 rounded-md"
+              loading="eager"
+              variant="header"
+            />
+            <span className="text-xl font-medium">InlinePDF</span>
+          </Link>
+          <SiteNavigation />
+        </div>
         <ThemePicker />
       </div>
     </header>

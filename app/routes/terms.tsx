@@ -1,13 +1,9 @@
-import { Shell } from '~/components/layout/shell';
+import type { Route } from './+types/terms';
 
-export function meta() {
+export const meta: Route.MetaFunction = () => {
   return [{ title: 'Terms | InlinePDF' }];
-}
+};
 
 export default function TermsRoute() {
-  return (
-    <Shell>
-      <section />
-    </Shell>
-  );
+  return <section />;
 }

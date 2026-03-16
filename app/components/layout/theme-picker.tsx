@@ -1,14 +1,17 @@
 import { useEffect, useState } from 'react';
+import { useRouteLoaderData } from 'react-router';
 
-import { cn } from '~/lib/utils';
+import { ToggleGroup, ToggleGroupItem } from '~/components/ui/toggle-group';
 import {
   applyThemePreference,
-  getThemePreference,
+  readThemeStateFromDocument,
   setThemePreference,
+  subscribeToThemeChanges,
   subscribeToSystemThemeChanges,
   themePreferences,
   type ThemePreference,
 } from '~/lib/theme';
+import type { loader as rootLoader } from '~/root';
 
 const themeOptionLabels: Record<ThemePreference, string> = {
   light: 'Light',
@@ -17,9 +20,18 @@ const themeOptionLabels: Record<ThemePreference, string> = {
 };
 
 export function ThemePicker() {
-  const [theme, setTheme] = useState<ThemePreference>(() =>
-    getThemePreference(),
-  );
+  const rootData = useRouteLoaderData<typeof rootLoader>('root');
+  const [theme, setTheme] = useState<ThemePreference>(() => {
+    if (typeof window === 'undefined') {
+      return rootData?.preference ?? 'auto';
+    }
+
+    if (document.documentElement.hasAttribute('data-theme-preference')) {
+      return readThemeStateFromDocument().preference;
+    }
+
+    return rootData?.preference ?? 'auto';
+  });
 
   useEffect(() => {
     applyThemePreference(theme);
@@ -33,31 +45,42 @@ export function ThemePicker() {
     });
   }, [theme]);
 
+  useEffect(() => {
+    return subscribeToThemeChanges(({ preference }) => {
+      setTheme((currentTheme) =>
+        currentTheme === preference ? currentTheme : preference,
+      );
+    });
+  }, []);
+
   function handleThemeSelect(nextTheme: ThemePreference) {
     setTheme(nextTheme);
     setThemePreference(nextTheme);
   }
 
   return (
-    <div className="inline-flex items-center rounded-4xl border border-input bg-background/50 p-0.5 supports-[backdrop-filter]:bg-background/40">
+    <ToggleGroup
+      aria-label="Theme preference"
+      value={[theme]}
+      onValueChange={(nextValue) => {
+        const nextTheme = nextValue[0];
+        if (
+          nextTheme &&
+          themePreferences.includes(nextTheme as ThemePreference)
+        ) {
+          handleThemeSelect(nextTheme as ThemePreference);
+        }
+      }}
+      variant="outline"
+      size="sm"
+      spacing={0}
+      className="rounded-md border border-input bg-background/50 p-0.5 supports-[backdrop-filter]:bg-background/40"
+    >
       {themePreferences.map((value) => (
-        <button
-          key={value}
-          type="button"
-          aria-pressed={theme === value}
-          onClick={() => {
-            handleThemeSelect(value);
-          }}
-          className={cn(
-            'min-w-[2.8rem] rounded-3xl px-2 py-1 text-xs font-medium transition-colors',
-            theme === value
-              ? 'bg-primary text-primary-foreground shadow-sm hover:bg-primary hover:text-primary-foreground'
-              : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground',
-          )}
-        >
+        <ToggleGroupItem key={value} value={value}>
           {themeOptionLabels[value]}
-        </button>
+        </ToggleGroupItem>
       ))}
-    </div>
+    </ToggleGroup>
   );
 }

@@ -1,4 +1,5 @@
 import { Button } from '~/components/ui/button';
+import { Spinner } from '~/components/ui/spinner';
 import {
   Field,
   FieldContent,
@@ -318,22 +319,20 @@ export function PdfToImagesToolScreen() {
       }
       actionBar={
         workspace.hasSelectedFile ? (
-          <div className="space-y-2">
+          <div>
             <Button
               disabled={!workspace.canConvert}
               onClick={() => {
                 workspace.handleConvert();
               }}
             >
+              {workspace.isConverting ? (
+                <Spinner data-icon="inline-start" />
+              ) : null}
               {workspace.isConverting
                 ? 'Converting...'
                 : 'Export Image Archive'}
             </Button>
-            {workspace.isConverting ? (
-              <p className="text-sm text-muted-foreground" aria-live="polite">
-                Converting pages...
-              </p>
-            ) : null}
           </div>
         ) : null
       }

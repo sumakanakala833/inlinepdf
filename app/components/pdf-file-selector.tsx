@@ -1,5 +1,4 @@
 import Add01Icon from '@hugeicons/core-free-icons/Add01Icon';
-import SelectFilesIcon from '@hugeicons/core-free-icons/FileAddIcon';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { type ChangeEvent, type DragEvent, useRef, useState } from 'react';
 
@@ -124,14 +123,14 @@ export function PdfFileSelector({
           variant="outline"
           disabled={disabled}
           className={cn(
-            'h-full min-h-34 w-full rounded-2xl border-dashed bg-transparent p-0 text-center transition-colors sm:min-h-39 lg:min-h-47',
+            'h-full min-h-[7.5rem] w-full rounded-2xl border-dashed bg-transparent p-0 text-center transition-colors',
             !disabled && 'hover:border-primary/40 hover:bg-muted/50',
             disabled && 'cursor-not-allowed opacity-70',
           )}
           onClick={openPicker}
         >
           <Card className="h-full w-full border-0 bg-transparent py-0 shadow-none ring-0">
-            <CardContent className="flex h-full min-h-[inherit] flex-col items-center justify-center gap-3 px-4 py-6">
+            <CardContent className="flex h-full min-h-[inherit] flex-col items-center justify-center gap-3 px-4 py-4">
               <div className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-background">
                 <HugeiconsIcon icon={Add01Icon} size={20} />
               </div>
@@ -179,9 +178,9 @@ export function PdfFileSelector({
         >
           <Empty className="pointer-events-none rounded-[inherit] border-0 p-8 sm:p-12">
             <EmptyHeader>
-              <EmptyMedia className="mb-4 flex size-16 items-center justify-center rounded-xl bg-muted/50 sm:size-20">
+              <EmptyMedia className="mb-4 flex size-16 items-center justify-center rounded-full border border-border bg-background sm:size-20">
                 <HugeiconsIcon
-                  icon={SelectFilesIcon}
+                  icon={Add01Icon}
                   className="size-8 text-muted-foreground sm:size-10"
                 />
               </EmptyMedia>

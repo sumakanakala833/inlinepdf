@@ -8,10 +8,10 @@ export function Footer() {
     <footer className="border-t bg-muted/50 backdrop-blur-md">
       <div className={`${containerClassName} py-6`}>
         <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-          <p className="text-muted-foreground text-center text-sm font-medium">
+          <p className="text-muted-foreground text-center text-sm font-normal">
             Copyright © 2026 InlinePDF. All rights reserved.
           </p>
-          <div className="flex items-center gap-4 text-sm font-medium">
+          <div className="flex items-center gap-4 text-sm font-normal">
             <AppLink
               to={href('/privacy')}
               prefetch="intent"

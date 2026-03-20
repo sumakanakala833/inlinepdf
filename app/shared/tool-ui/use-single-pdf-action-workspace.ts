@@ -18,27 +18,39 @@ export function useSinglePdfActionWorkspace<
   const [localErrorMessage, setLocalErrorMessage] = useState<string | null>(
     null,
   );
+  const [lastActionFileEntryId, setLastActionFileEntryId] = useState<
+    string | null
+  >(null);
   const { selectedFileEntry, selectFile, clearSelection } =
     useSinglePdfQueuedFileSelection();
 
   const isBusy = fetcher.state !== 'idle';
+  const isCurrentSelectionActionTarget =
+    !!selectedFileEntry && selectedFileEntry.id === lastActionFileEntryId;
   const actionErrorMessage =
-    fetcher.data && !fetcher.data.ok ? fetcher.data.message : null;
+    isCurrentSelectionActionTarget && fetcher.data && !fetcher.data.ok
+      ? fetcher.data.message
+      : null;
   const errorMessage = localErrorMessage ?? actionErrorMessage;
   const result =
-    selectedFileEntry && fetcher.data?.ok
+    isCurrentSelectionActionTarget && fetcher.data?.ok
       ? (fetcher.data.result ?? null)
       : null;
-  const successMessage = fetcher.data?.ok ? fetcher.data.message : null;
+  const successMessage =
+    isCurrentSelectionActionTarget && fetcher.data?.ok
+      ? fetcher.data.message
+      : null;
 
   function handleFileSelection(file: File) {
-    selectFile(file);
+    const entry = selectFile(file);
     setLocalErrorMessage(null);
+    setLastActionFileEntryId(null);
 
     if (!options?.submitOnSelect) {
       return;
     }
 
+    setLastActionFileEntryId(entry.id);
     submitClientAction({
       fetcher,
       payload: options.submitOnSelect.buildPayload(file),
@@ -55,10 +67,14 @@ export function useSinglePdfActionWorkspace<
 
     clearSelection();
     setLocalErrorMessage(null);
+    setLastActionFileEntryId(null);
   }
 
   return {
     actionErrorMessage,
+    beginActionForFileEntry(fileEntryId: string) {
+      setLastActionFileEntryId(fileEntryId);
+    },
     errorMessage,
     fetcher,
     handleClearSelection,

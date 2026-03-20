@@ -11,6 +11,10 @@ interface MetadataLike {
   getRaw: () => unknown;
 }
 
+interface TextContentItemWithFontName {
+  fontName: string;
+}
+
 interface FontObjectLike {
   name?: string;
   fallbackName?: string;
@@ -60,6 +64,15 @@ function hasGetRaw(value: unknown): value is MetadataLike {
 
   const record = value as Record<string, unknown>;
   return typeof record.getRaw === 'function';
+}
+
+function hasFontName(value: unknown): value is TextContentItemWithFontName {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+
+  const record = value as Record<string, unknown>;
+  return typeof record.fontName === 'string';
 }
 
 function normalizeObjectToStringMap(value: unknown): Record<string, string> {
@@ -232,7 +245,7 @@ async function readFontsAndRawMetadata(pdfBytes: Uint8Array): Promise<{
       infoDictionary = normalizeObjectToStringMap(metadata.info);
 
       if (hasGetRaw(metadata.metadata)) {
-        const rawXmp = metadata.metadata.getRaw() as unknown;
+        const rawXmp: unknown = metadata.metadata.getRaw();
         rawXmpMetadata = normalizeRawMetadata(rawXmp);
       } else {
         rawXmpMetadata = null;
@@ -270,7 +283,7 @@ async function readFontsAndRawMetadata(pdfBytes: Uint8Array): Promise<{
         const textContent = await page.getTextContent();
 
         for (const item of textContent.items) {
-          if (!('fontName' in item)) {
+          if (!hasFontName(item)) {
             continue;
           }
 
@@ -278,7 +291,12 @@ async function readFontsAndRawMetadata(pdfBytes: Uint8Array): Promise<{
 
           if (Object.hasOwn(textContent.styles, item.fontName)) {
             const style = textContent.styles[item.fontName];
-            for (const fontName of readCandidateFontNames(style.fontFamily)) {
+            const fontFamily = style.fontFamily;
+            if (typeof fontFamily !== 'string') {
+              continue;
+            }
+
+            for (const fontName of readCandidateFontNames(fontFamily)) {
               fontFamilies.add(fontName);
             }
           }

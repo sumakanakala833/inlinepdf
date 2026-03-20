@@ -4,9 +4,10 @@ interface ToolWorkspaceProps {
   title: string;
   description: string;
   titleIcon?: unknown;
-  helperText?: string;
   inputPanel?: React.ReactNode;
+  inputPanelClassName?: string;
   optionsPanel?: React.ReactNode;
+  inputOptionsLayoutClassName?: string;
   actionBar?: React.ReactNode;
   outputPanel?: React.ReactNode;
   errorMessage?: string | null;
@@ -15,10 +16,10 @@ interface ToolWorkspaceProps {
 export function ToolWorkspace({
   title,
   description,
-  titleIcon: _titleIcon,
-  helperText,
   inputPanel,
+  inputPanelClassName,
   optionsPanel,
+  inputOptionsLayoutClassName,
   actionBar,
   outputPanel,
   errorMessage,
@@ -32,9 +33,6 @@ export function ToolWorkspace({
           </h1>
         </div>
         <p className="text-lg text-muted-foreground">{description}</p>
-        {helperText ? (
-          <p className="text-sm text-muted-foreground">{helperText}</p>
-        ) : null}
       </header>
 
       {errorMessage ? (
@@ -44,10 +42,18 @@ export function ToolWorkspace({
         </Alert>
       ) : null}
 
-      {inputPanel ? (
-        <section className="space-y-3">{inputPanel}</section>
+      {inputPanel && optionsPanel ? (
+        <section className={inputOptionsLayoutClassName ?? 'space-y-6'}>
+          <div className={inputPanelClassName ?? 'space-y-3'}>{inputPanel}</div>
+          <div className="space-y-3">{optionsPanel}</div>
+        </section>
       ) : null}
-      {optionsPanel ? (
+      {inputPanel && !optionsPanel ? (
+        <section className={inputPanelClassName ?? 'space-y-3'}>
+          {inputPanel}
+        </section>
+      ) : null}
+      {optionsPanel && !inputPanel ? (
         <section className="space-y-3">{optionsPanel}</section>
       ) : null}
       {actionBar ? <section className="space-y-3">{actionBar}</section> : null}

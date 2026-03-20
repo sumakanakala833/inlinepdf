@@ -13,6 +13,7 @@ vi.mock('~/platform/pdf/load-pdfjs', () => ({
   ),
 }));
 
+import { getSafeMaxLabelsPerPage } from '../layout';
 import { prepareShippingLabelPdf } from './prepare-shipping-labels';
 
 interface MockTextItem {
@@ -139,7 +140,10 @@ describe('prepareShippingLabelPdf', () => {
 
     expect(result.pagesProcessed).toBe(1);
     expect(result.labelsPrepared).toBe(1);
+    expect(result.outputPagesCreated).toBe(1);
     expect(result.pagesSkipped).toBe(0);
+    expect(result.skippedPageNumbers).toEqual([]);
+    expect(result.elapsedMs).toBeGreaterThan(0);
     expect(result.fileName).toMatch(
       /^meesho-meesho-labels-\d{4}-\d{2}-\d{2}\.pdf$/,
     );
@@ -224,11 +228,12 @@ describe('prepareShippingLabelPdf', () => {
     expect(result.pagesProcessed).toBe(2);
     expect(result.labelsPrepared).toBe(1);
     expect(result.pagesSkipped).toBe(1);
+    expect(result.skippedPageNumbers).toEqual([2]);
     expect(outputDocument.getPageCount()).toBe(1);
     expect(outputDocument.getPage(0).getWidth()).toBeCloseTo(200, 4);
   });
 
-  it('fits prepared label pages onto portrait A4 pages when A4 mode is selected', async () => {
+  it('fits prepared label pages onto an A4 sheet when A4 mode is selected', async () => {
     const file = await createPdfFile('a4.pdf', [[220, 200]]);
     const { loadingTask } = createPdfJsLoadingTask([
       {
@@ -253,8 +258,14 @@ describe('prepareShippingLabelPdf', () => {
       await readBlobAsArrayBuffer(result.blob),
     );
 
-    expect(outputDocument.getPage(0).getWidth()).toBeCloseTo(595, 4);
-    expect(outputDocument.getPage(0).getHeight()).toBeCloseTo(842, 4);
+    const outputPage = outputDocument.getPage(0);
+    const dimensions = [outputPage.getWidth(), outputPage.getHeight()].sort(
+      (left, right) => left - right,
+    );
+
+    expect(dimensions[0]).toBeCloseTo(595, 4);
+    expect(dimensions[1]).toBeCloseTo(842, 4);
+    expect(result.outputPagesCreated).toBe(1);
   });
 
   it('throws when no Meesho labels are found in the source PDF', async () => {
@@ -410,5 +421,359 @@ describe('prepareShippingLabelPdf', () => {
     expect(outputDocument.getPage(0).getWidth()).toBeCloseTo(170, 4);
     expect(outputDocument.getPage(1).getWidth()).toBeCloseTo(110, 4);
     expect(outputDocument.getPage(2).getWidth()).toBeCloseTo(140, 4);
+  });
+
+  it('groups four Meesho labels onto one A4 page when labels-per-page is enabled', async () => {
+    const file = await createPdfFile('meesho-grid.pdf', [
+      [220, 200],
+      [220, 200],
+      [220, 200],
+      [220, 200],
+    ]);
+    const { loadingTask } = createPdfJsLoadingTask([
+      {
+        width: 220,
+        height: 200,
+        items: [
+          {
+            str: 'TAX INVOICE',
+            transform: [10, 0, 0, 10, 40, 150],
+            height: 10,
+          },
+        ],
+      },
+      {
+        width: 220,
+        height: 200,
+        items: [
+          {
+            str: 'TAX INVOICE',
+            transform: [10, 0, 0, 10, 40, 150],
+            height: 10,
+          },
+        ],
+      },
+      {
+        width: 220,
+        height: 200,
+        items: [
+          {
+            str: 'TAX INVOICE',
+            transform: [10, 0, 0, 10, 40, 150],
+            height: 10,
+          },
+        ],
+      },
+      {
+        width: 220,
+        height: 200,
+        items: [
+          {
+            str: 'TAX INVOICE',
+            transform: [10, 0, 0, 10, 40, 150],
+            height: 10,
+          },
+        ],
+      },
+    ]);
+    getDocumentMock.mockReturnValueOnce(loadingTask);
+
+    const result = await prepareShippingLabelPdf(file, {
+      brand: 'meesho',
+      outputPageSize: 'a4',
+      labelsPerPage: 4,
+    });
+    const outputDocument = await PDFDocument.load(
+      await readBlobAsArrayBuffer(result.blob),
+    );
+
+    expect(result.labelsPrepared).toBe(4);
+    expect(result.outputPagesCreated).toBe(1);
+    expect(outputDocument.getPageCount()).toBe(1);
+  });
+
+  it('rejects labels-per-page values that exceed the readable A4 limit for Meesho', async () => {
+    const file = await createPdfFile('meesho-limit.pdf', [[220, 200]]);
+    const { loadingTask } = createPdfJsLoadingTask([
+      {
+        width: 220,
+        height: 200,
+        items: [
+          {
+            str: 'TAX INVOICE',
+            transform: [10, 0, 0, 10, 40, 150],
+            height: 10,
+          },
+        ],
+      },
+    ]);
+    getDocumentMock.mockReturnValueOnce(loadingTask);
+
+    await expect(
+      prepareShippingLabelPdf(file, {
+        brand: 'meesho',
+        outputPageSize: 'a4',
+        labelsPerPage: 5,
+      }),
+    ).rejects.toThrow(
+      'Choose 4 or fewer labels per A4 page for Meesho labels.',
+    );
+  });
+
+  it('treats Amazon pages as full-page labels and groups them on fixed paper sizes', async () => {
+    const file = await createPdfFile('amazon.pdf', [
+      [288, 432],
+      [288, 432],
+      [288, 432],
+      [288, 432],
+    ]);
+    const { loadingTask } = createPdfJsLoadingTask([
+      {
+        width: 288,
+        height: 432,
+        items: [{ str: 'Amazon label', transform: [10, 0, 0, 10, 24, 380] }],
+      },
+      {
+        width: 288,
+        height: 432,
+        items: [{ str: 'Amazon label', transform: [10, 0, 0, 10, 24, 380] }],
+      },
+      {
+        width: 288,
+        height: 432,
+        items: [{ str: 'Amazon label', transform: [10, 0, 0, 10, 24, 380] }],
+      },
+      {
+        width: 288,
+        height: 432,
+        items: [{ str: 'Amazon label', transform: [10, 0, 0, 10, 24, 380] }],
+      },
+    ]);
+    getDocumentMock.mockReturnValueOnce(loadingTask);
+
+    const result = await prepareShippingLabelPdf(file, {
+      brand: 'amazon',
+      outputPageSize: 'a4',
+      labelsPerPage: 4,
+    });
+    const outputDocument = await PDFDocument.load(
+      await readBlobAsArrayBuffer(result.blob),
+    );
+
+    expect(result.labelsPrepared).toBe(2);
+    expect(result.outputPagesCreated).toBe(1);
+    expect(result.pagesSkipped).toBe(2);
+    expect(result.skippedPageNumbers).toEqual([2, 4]);
+    expect(outputDocument.getPageCount()).toBe(1);
+  });
+
+  it('fits four large Amazon labels on one A4 page', async () => {
+    const file = await createPdfFile('amazon-large.pdf', [
+      [595, 842],
+      [595, 842],
+      [595, 842],
+      [595, 842],
+      [595, 842],
+      [595, 842],
+      [595, 842],
+      [595, 842],
+    ]);
+    const { loadingTask } = createPdfJsLoadingTask([
+      {
+        width: 595,
+        height: 842,
+        items: [{ str: 'Label', transform: [10, 0, 0, 10, 24, 780] }],
+      },
+      {
+        width: 595,
+        height: 842,
+        items: [{ str: 'Amazon', transform: [10, 0, 0, 10, 24, 780] }],
+      },
+      {
+        width: 595,
+        height: 842,
+        items: [{ str: 'Label', transform: [10, 0, 0, 10, 24, 780] }],
+      },
+      {
+        width: 595,
+        height: 842,
+        items: [{ str: 'Invoice', transform: [10, 0, 0, 10, 24, 780] }],
+      },
+      {
+        width: 595,
+        height: 842,
+        items: [{ str: 'Label', transform: [10, 0, 0, 10, 24, 780] }],
+      },
+      {
+        width: 595,
+        height: 842,
+        items: [{ str: 'Invoice', transform: [10, 0, 0, 10, 24, 780] }],
+      },
+      {
+        width: 595,
+        height: 842,
+        items: [{ str: 'Label', transform: [10, 0, 0, 10, 24, 780] }],
+      },
+      {
+        width: 595,
+        height: 842,
+        items: [{ str: 'Invoice', transform: [10, 0, 0, 10, 24, 780] }],
+      },
+    ]);
+    getDocumentMock.mockReturnValueOnce(loadingTask);
+
+    const result = await prepareShippingLabelPdf(file, {
+      brand: 'amazon',
+      outputPageSize: 'a4',
+      labelsPerPage: 4,
+    });
+    const outputDocument = await PDFDocument.load(
+      await readBlobAsArrayBuffer(result.blob),
+    );
+
+    expect(result.labelsPrepared).toBe(4);
+    expect(result.outputPagesCreated).toBe(1);
+    expect(outputDocument.getPageCount()).toBe(1);
+  });
+
+  it('rejects Amazon uploads when the second page does not contain Amazon text', async () => {
+    const file = await createPdfFile('not-amazon.pdf', [[288, 432], [288, 432]]);
+    const { loadingTask } = createPdfJsLoadingTask([
+      {
+        width: 288,
+        height: 432,
+        items: [{ str: 'Amazon label', transform: [10, 0, 0, 10, 24, 380] }],
+      },
+      {
+        width: 288,
+        height: 432,
+        items: [{ str: 'Invoice', transform: [10, 0, 0, 10, 24, 380] }],
+      },
+    ]);
+    getDocumentMock.mockReturnValueOnce(loadingTask);
+
+    await expect(
+      prepareShippingLabelPdf(file, {
+        brand: 'amazon',
+        outputPageSize: 'auto',
+      }),
+    ).rejects.toThrow(
+      'This file does not appear to be a supported Amazon label PDF.',
+    );
+  });
+
+  it('sorts Flipkart labels by SKU without showing pickup-partner sorting', async () => {
+    const file = await createPdfFile('flipkart.pdf', [
+      [595, 842],
+      [595, 842],
+    ]);
+    const { loadingTask } = createPdfJsLoadingTask([
+      {
+        width: 595,
+        height: 842,
+        items: [
+          {
+            str: 'E-Kart Logistics',
+            transform: [6, 0, 0, 6, 216, 801.5],
+            height: 6,
+          },
+          {
+            str: 'SKU ID | Description',
+            transform: [6, 0, 0, 6, 258, 557],
+            height: 6,
+          },
+          {
+            str: '1 Zulu | Demo product',
+            transform: [6, 0, 0, 6, 192, 548],
+            height: 6,
+          },
+        ],
+      },
+      {
+        width: 595,
+        height: 842,
+        items: [
+          {
+            str: 'SKU ID | Description',
+            transform: [6, 0, 0, 6, 258, 557],
+            height: 6,
+          },
+          {
+            str: '1 Alpha | Demo product',
+            transform: [6, 0, 0, 6, 192, 548],
+            height: 6,
+          },
+        ],
+      },
+    ]);
+    getDocumentMock.mockReturnValueOnce(loadingTask);
+
+    const result = await prepareShippingLabelPdf(file, {
+      brand: 'flipkart',
+      outputPageSize: 'auto',
+      sort: {
+        pickupPartnerDirection: null,
+        skuDirection: 'asc',
+      },
+    });
+    const outputDocument = await PDFDocument.load(
+      await readBlobAsArrayBuffer(result.blob),
+    );
+
+    expect(outputDocument.getPageCount()).toBe(2);
+    expect(outputDocument.getPage(0).getWidth()).toBeCloseTo(595, 4);
+    expect(outputDocument.getPage(0).getHeight()).toBeCloseTo(395.11, 2);
+    expect(outputDocument.getPage(1).getWidth()).toBeCloseTo(595, 4);
+  });
+
+  it('rejects Flipkart uploads when the first page does not contain E-Kart Logistics', async () => {
+    const file = await createPdfFile('not-flipkart.pdf', [[595, 842]]);
+    const { loadingTask } = createPdfJsLoadingTask([
+      {
+        width: 595,
+        height: 842,
+        items: [
+          {
+            str: 'SKU ID | Description',
+            transform: [6, 0, 0, 6, 258, 557],
+            height: 6,
+          },
+        ],
+      },
+    ]);
+    getDocumentMock.mockReturnValueOnce(loadingTask);
+
+    await expect(
+      prepareShippingLabelPdf(file, {
+        brand: 'flipkart',
+        outputPageSize: 'auto',
+      }),
+    ).rejects.toThrow(
+      'This file does not appear to be a supported Flipkart label PDF.',
+    );
+  });
+});
+
+describe('getSafeMaxLabelsPerPage', () => {
+  it('keeps the A4 limit at four labels for Meesho', () => {
+    expect(
+      getSafeMaxLabelsPerPage({
+        brand: 'meesho',
+        pageSizeId: 'a4',
+      }),
+    ).toBe(4);
+  });
+
+  it('allows four A4-sized Amazon labels per A4 page', () => {
+    expect(
+      getSafeMaxLabelsPerPage({
+        brand: 'amazon',
+        pageSizeId: 'a4',
+        labelSize: {
+          width: 595,
+          height: 842,
+        },
+      }),
+    ).toBe(4);
   });
 });

@@ -28,12 +28,18 @@ export interface ShippingLabelPreparationResult {
   fileName: string;
   pagesProcessed: number;
   labelsPrepared: number;
+  outputPagesCreated: number;
   pagesSkipped: number;
+  skippedPageNumbers: number[];
+  elapsedMs: number;
 }
 
 export interface ShippingLabelPreparationSummary {
   pagesProcessed: number;
   labelsPrepared: number;
+  outputPagesCreated: number;
   pagesSkipped: number;
+  skippedPageNumbers: number[];
+  elapsedMs: number;
   fileName: string;
 }

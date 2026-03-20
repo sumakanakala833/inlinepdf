@@ -1,7 +1,8 @@
 import Cancel01Icon from '@hugeicons/core-free-icons/Cancel01Icon';
 import File01Icon from '@hugeicons/core-free-icons/File01Icon';
 import { type ReactNode } from 'react';
-import { isSortable, useSortable } from '@dnd-kit/react/sortable';
+import type { DragDropEventHandlers } from '@dnd-kit/react';
+import { isSortableOperation, useSortable } from '@dnd-kit/react/sortable';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { CspDragDropProvider } from '~/components/dnd/csp-drag-drop-provider';
 import { AspectRatio } from '~/components/ui/aspect-ratio';
@@ -25,6 +26,7 @@ interface FileQueueListProps {
   files: QueuedFile[];
   disabled?: boolean;
   showIndexBadge?: boolean;
+  listClassName?: string;
   onReorder?: (activeId: string, overId: string) => void;
   onRemove?: (id: string) => void;
   appendItem?: ReactNode;
@@ -32,8 +34,6 @@ interface FileQueueListProps {
 
 const FILE_ROW_CLASS_NAME =
   'relative rounded-2xl select-none transition-shadow touch-none';
-const FILE_ROW_ACTION_BUTTON_CLASS =
-  'h-9 w-9 shrink-0 rounded-full border border-border bg-muted text-foreground shadow-sm transition-colors duration-150 hover:border-destructive hover:bg-destructive hover:text-white hover:shadow-sm focus-visible:border-destructive focus-visible:bg-destructive focus-visible:text-white focus-visible:shadow-sm dark:bg-muted dark:text-foreground dark:hover:border-destructive dark:hover:bg-destructive dark:hover:text-white dark:focus-visible:border-destructive dark:focus-visible:bg-destructive dark:focus-visible:text-white';
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024) {
@@ -47,24 +47,6 @@ function formatBytes(bytes: number): string {
 
   const mb = kb / 1024;
   return `${mb.toFixed(2)} MB`;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
-}
-
-function getEventSourceId(event: unknown): string | null {
-  if (
-    !isRecord(event) ||
-    !isRecord(event.operation) ||
-    !isRecord(event.operation.source)
-  ) {
-    return null;
-  }
-
-  return typeof event.operation.source.id === 'string'
-    ? event.operation.source.id
-    : null;
 }
 
 interface FileQueueRowCardProps {
@@ -126,7 +108,7 @@ function FileQueueRowCard({
             )}
           >
             {showIndexBadge ? (
-              <span className="row-span-3 inline-flex h-10 items-center justify-center rounded-lg border border-primary/25 bg-primary/10 px-2 text-xs font-semibold tabular-nums text-primary shadow-sm">
+              <span className="row-span-3 self-center inline-flex h-10 items-center justify-center rounded-lg border border-primary/25 bg-primary/10 px-2 text-xs font-semibold tabular-nums text-primary shadow-sm">
                 {index + 1}
               </span>
             ) : null}
@@ -142,10 +124,9 @@ function FileQueueRowCard({
           </div>
 
           {onRemove ? (
-            <div className="flex shrink-0 items-center gap-2 self-start lg:absolute lg:right-4 lg:top-4 lg:z-20">
+            <div className="flex shrink-0 items-center justify-center self-center lg:absolute lg:right-4 lg:top-4 lg:z-20 lg:self-auto">
               <Button
                 type="button"
-                variant="outline"
                 size="icon"
                 aria-label={`Remove ${entry.file.name}`}
                 data-dnd-interactive="true"
@@ -153,9 +134,9 @@ function FileQueueRowCard({
                   onRemove(entry.id);
                 }}
                 disabled={disabled}
-                className={FILE_ROW_ACTION_BUTTON_CLASS}
+                className="hover:bg-destructive hover:text-white hover:border-destructive"
               >
-                <HugeiconsIcon icon={Cancel01Icon} size={20} />
+                <HugeiconsIcon icon={Cancel01Icon} size={20} strokeWidth={2} />
               </Button>
             </div>
           ) : null}
@@ -224,6 +205,7 @@ export function FileQueueList({
   files,
   disabled = false,
   showIndexBadge = true,
+  listClassName,
   onReorder,
   onRemove,
   appendItem,
@@ -235,47 +217,37 @@ export function FileQueueList({
   const canReorder = !!onReorder && files.length > 1;
   const reorderFiles = onReorder;
 
-  function handleDragEnd(event: unknown) {
-    if (
-      !canReorder ||
-      disabled ||
-      !reorderFiles ||
-      !isRecord(event) ||
-      !isRecord(event.operation) ||
-      event.canceled === true
-    ) {
+  const handleDragEnd: NonNullable<DragDropEventHandlers['onDragEnd']> = (
+    event,
+  ) => {
+    if (!canReorder || disabled || !reorderFiles || event.canceled) {
       return;
     }
 
-    const source = event.operation.source;
-
-    if (!isSortable(source)) {
+    if (!isSortableOperation(event.operation)) {
       return;
     }
 
-    const { initialIndex, index } = source;
+    const { source, target } = event.operation;
+    const sourceId = source && typeof source.id === 'string' ? source.id : null;
+    const targetId = target && typeof target.id === 'string' ? target.id : null;
 
-    if (initialIndex === index) {
-      return;
-    }
-
-    const sourceId = files[initialIndex]?.id;
-    const targetId = files[index]?.id;
-
-    if (!sourceId || !targetId) {
+    if (!sourceId || !targetId || sourceId === targetId) {
       return;
     }
 
     reorderFiles(sourceId, targetId);
-  }
+  };
 
   return (
-    <section
-      className="isolate space-y-3 [contain:layout_paint]"
-      aria-label={title}
-    >
+    <section className="isolate space-y-3" aria-label={title}>
       <CspDragDropProvider onDragEnd={handleDragEnd}>
-        <ul className="grid grid-cols-1 gap-3 [contain:layout] sm:grid-cols-2 lg:grid-cols-3">
+        <ul
+          className={
+            listClassName ??
+            'grid grid-cols-1 items-start gap-3 [contain:layout] sm:grid-cols-2 lg:grid-cols-3'
+          }
+        >
           {files.map((entry, index) => (
             <SortableFileRow
               key={entry.id}

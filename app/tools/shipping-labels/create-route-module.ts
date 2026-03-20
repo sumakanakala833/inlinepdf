@@ -15,6 +15,7 @@ import { prepareShippingLabels } from './use-cases/prepare-shipping-labels';
 interface ShippingLabelsActionPayload {
   file: File;
   outputPageSize: ShippingLabelOutputPageSize;
+  labelsPerPage: number;
   pickupPartnerDirection: ShippingLabelSortDirection | null;
   skuDirection: ShippingLabelSortDirection | null;
 }
@@ -22,6 +23,7 @@ interface ShippingLabelsActionPayload {
 interface ShippingLabelActionInput {
   file: File | null;
   outputPageSize: string | null;
+  labelsPerPage: string | null;
   pickupPartnerDirection: string | null;
   skuDirection: string | null;
 }
@@ -46,6 +48,12 @@ export function createShippingLabelRouteModule(
           getString(formData, 'outputPageSize') ??
           fallbackPayload?.outputPageSize ??
           null,
+        labelsPerPage:
+          getString(formData, 'labelsPerPage') ??
+          (typeof fallbackPayload?.labelsPerPage === 'number'
+            ? String(fallbackPayload.labelsPerPage)
+            : null) ??
+          null,
         pickupPartnerDirection:
           getString(formData, 'pickupPartnerDirection') ??
           fallbackPayload?.pickupPartnerDirection ??
@@ -61,6 +69,7 @@ export function createShippingLabelRouteModule(
         file: input.file,
         brand,
         outputPageSize: input.outputPageSize,
+        labelsPerPage: input.labelsPerPage,
         pickupPartnerDirection: input.pickupPartnerDirection,
         skuDirection: input.skuDirection,
       });
@@ -69,13 +78,16 @@ export function createShippingLabelRouteModule(
       saveBlobFile(result.blob, result.fileName);
     },
     getSuccessMessage(result) {
-      return `Prepared ${String(result.labelsPrepared)} label page${result.labelsPrepared === 1 ? '' : 's'}.`;
+      return `Prepared ${String(result.labelsPrepared)} label${result.labelsPrepared === 1 ? '' : 's'} on ${String(result.outputPagesCreated)} page${result.outputPagesCreated === 1 ? '' : 's'}.`;
     },
     mapSuccessResult(result) {
       return {
         pagesProcessed: result.pagesProcessed,
         labelsPrepared: result.labelsPrepared,
+        outputPagesCreated: result.outputPagesCreated,
         pagesSkipped: result.pagesSkipped,
+        skippedPageNumbers: result.skippedPageNumbers,
+        elapsedMs: result.elapsedMs,
         fileName: result.fileName,
       };
     },

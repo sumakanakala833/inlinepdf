@@ -9,6 +9,7 @@ import { CspDragDropProvider } from '~/components/dnd/csp-drag-drop-provider';
 import { PdfFileSelector } from '~/components/pdf-file-selector';
 import { AspectRatio } from '~/components/ui/aspect-ratio';
 import { Button } from '~/components/ui/button';
+import { Spinner } from '~/components/ui/spinner';
 import { Card, CardContent } from '~/components/ui/card';
 import { Checkbox } from '~/components/ui/checkbox';
 import {
@@ -24,7 +25,6 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '~/components/ui/pagination';
-import { Spinner } from '~/components/ui/spinner';
 import {
   Tooltip,
   TooltipContent,
@@ -657,6 +657,7 @@ function OrganizeReadyState({
 
           <div className="flex justify-end pt-1">
             <Button disabled={!canExport} onClick={onExport}>
+              {isExporting ? <Spinner data-icon="inline-start" /> : null}
               {isExporting ? 'Organizing...' : 'Export PDF'}
             </Button>
           </div>

@@ -1,12 +1,8 @@
-import { forwardRef, useCallback } from 'react';
+import { forwardRef } from 'react';
 import {
   Form,
   Link,
   NavLink,
-  useNavigate,
-  type NavigateFunction,
-  type NavigateOptions,
-  type To,
 } from 'react-router';
 
 type AppLinkProps = React.ComponentPropsWithoutRef<typeof Link>;
@@ -37,21 +33,3 @@ export const AppForm = forwardRef<HTMLFormElement, AppFormProps>(
 );
 
 AppForm.displayName = 'AppForm';
-
-export function useAppNavigate(): NavigateFunction {
-  const navigate = useNavigate();
-
-  return useCallback<NavigateFunction>(
-    (to: To | number, options?: NavigateOptions) => {
-      if (typeof to === 'number') {
-        return navigate(to);
-      }
-
-      return navigate(to, {
-        viewTransition: true,
-        ...options,
-      });
-    },
-    [navigate],
-  );
-}

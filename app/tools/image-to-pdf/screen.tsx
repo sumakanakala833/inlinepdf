@@ -1,5 +1,6 @@
 import { ImageFileSelector } from '~/components/image-file-selector';
 import { Button } from '~/components/ui/button';
+import { Spinner } from '~/components/ui/spinner';
 import {
   Field,
   FieldContent,
@@ -97,18 +98,16 @@ export function ImageToPdfToolScreen() {
       }
       actionBar={
         workspace.files.length > 0 ? (
-          <div className="space-y-2">
+          <div>
             <Button
               disabled={!workspace.canConvert}
               onClick={workspace.handleConvert}
             >
+              {workspace.isConverting ? (
+                <Spinner data-icon="inline-start" />
+              ) : null}
               {workspace.convertButtonLabel}
             </Button>
-            {workspace.helperText ? (
-              <p className="text-sm text-muted-foreground" aria-live="polite">
-                {workspace.helperText}
-              </p>
-            ) : null}
           </div>
         ) : null
       }

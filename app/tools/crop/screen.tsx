@@ -16,6 +16,7 @@ import {
 } from '~/components/ui/alert-dialog';
 import { Alert, AlertDescription, AlertTitle } from '~/components/ui/alert';
 import { Button } from '~/components/ui/button';
+import { Spinner } from '~/components/ui/spinner';
 import { FieldContent, FieldLabel } from '~/components/ui/field';
 import { Input } from '~/components/ui/input';
 import {
@@ -25,7 +26,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '~/components/ui/select';
-import { Spinner } from '~/components/ui/spinner';
 import {
   STANDARD_PAGE_SIZE_IDS,
   getStandardPageSizeOption,
@@ -250,6 +250,7 @@ function CropActionBar({
             onClick={onOpenExportDialog}
             className="whitespace-nowrap"
           >
+            {isExporting ? <Spinner data-icon="inline-start" /> : null}
             {isExporting ? 'Cropping...' : 'Crop PDF'}
           </Button>
         </div>
@@ -269,6 +270,7 @@ function CropActionBar({
           onClick={onOpenExportDialog}
           className="w-full"
         >
+          {isExporting ? <Spinner data-icon="inline-start" /> : null}
           {isExporting ? 'Cropping...' : 'Crop PDF'}
         </Button>
       </div>

@@ -1,20 +1,18 @@
+import AlertCircleIcon from '@hugeicons/core-free-icons/AlertCircleIcon';
+import { HugeiconsIcon } from '@hugeicons/react';
 import type { ComponentProps } from 'react';
 
-import { Badge } from '~/components/ui/badge';
+import { Alert, AlertDescription, AlertTitle } from '~/components/ui/alert';
 import { Button } from '~/components/ui/button';
+import { Spinner } from '~/components/ui/spinner';
 import { Checkbox } from '~/components/ui/checkbox';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '~/components/ui/card';
 import {
   Field,
   FieldContent,
   FieldDescription,
+  FieldGroup,
   FieldLabel,
+  FieldLegend,
   FieldSet,
 } from '~/components/ui/field';
 import {
@@ -43,21 +41,21 @@ const OUTPUT_PAGE_SIZE_DESCRIPTIONS: Record<
   string
 > = {
   auto: 'Use the detected label size with no resizing.',
-  a3: 'Scale each label page to fit on a portrait A3 page.',
-  a4: 'Scale each label page to fit on a portrait A4 page.',
-  a5: 'Scale each label page to fit on a portrait A5 page.',
-  b5: 'Scale each label page to fit on a portrait B5 page.',
-  envelope10: 'Scale each label page to fit on an Envelope #10 page.',
+  a3: 'Scale each label page to fit on an A3 sheet.',
+  a4: 'Scale each label page to fit on an A4 sheet.',
+  a5: 'Scale each label page to fit on an A5 sheet.',
+  b5: 'Scale each label page to fit on a B5 sheet.',
+  envelope10: 'Scale each label page to fit on an Envelope #10 sheet.',
   envelopeChoukei3:
-    'Scale each label page to fit on an Envelope Choukei 3 page.',
-  envelopeDl: 'Scale each label page to fit on an Envelope DL page.',
-  jisB5: 'Scale each label page to fit on a JIS B5 page.',
-  roc16k: 'Scale each label page to fit on a ROC 16K page.',
-  superBA3: 'Scale each label page to fit on a Super B/A3 page.',
-  tabloid: 'Scale each label page to fit on a Tabloid page.',
-  tabloidOversize: 'Scale each label page to fit on a Tabloid Oversize page.',
-  legal: 'Scale each label page to fit on a US Legal page.',
-  letter: 'Scale each label page to fit on a US Letter page.',
+    'Scale each label page to fit on an Envelope Choukei 3 sheet.',
+  envelopeDl: 'Scale each label page to fit on an Envelope DL sheet.',
+  jisB5: 'Scale each label page to fit on a JIS B5 sheet.',
+  roc16k: 'Scale each label page to fit on a ROC 16K sheet.',
+  superBA3: 'Scale each label page to fit on a Super B/A3 sheet.',
+  tabloid: 'Scale each label page to fit on a Tabloid sheet.',
+  tabloidOversize: 'Scale each label page to fit on a Tabloid Oversize sheet.',
+  legal: 'Scale each label page to fit on a US Legal sheet.',
+  letter: 'Scale each label page to fit on a US Letter sheet.',
 };
 
 const OUTPUT_PAGE_SIZE_OPTIONS: {
@@ -69,9 +67,35 @@ const OUTPUT_PAGE_SIZE_OPTIONS: {
 }));
 
 const outputPageSizeInputId = 'shipping-label-output-page-size';
+const pickupPartnerSortInputId = 'shipping-label-sort-pickup-partner';
+const skuSortInputId = 'shipping-label-sort-sku';
+const labelsPerPageInputId = 'shipping-label-labels-per-page';
 
 function renderOutputPageSizeLabel(value: ShippingLabelOutputPageSize) {
   return <PageSizeSelectLabel value={value} />;
+}
+
+function formatDuration(elapsedMs: number) {
+  if (elapsedMs < 1000) {
+    return `${String(elapsedMs)} ms`;
+  }
+
+  const seconds = elapsedMs / 1000;
+  if (seconds < 60) {
+    return `${seconds.toFixed(seconds < 10 ? 1 : 0)} s`;
+  }
+
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = Math.round(seconds % 60);
+  return `${String(minutes)}m ${String(remainingSeconds)}s`;
+}
+
+function formatPageList(pageNumbers: number[]) {
+  if (pageNumbers.length === 0) {
+    return 'None';
+  }
+
+  return pageNumbers.join(', ');
 }
 
 interface ShippingLabelsToolScreenProps {
@@ -91,6 +115,9 @@ export function ShippingLabelsToolScreen({
   const selectedOutputPageSizeOption = OUTPUT_PAGE_SIZE_OPTIONS.find(
     (option) => option.value === workspace.outputPageSize,
   );
+  const selectedLabelsPerPage = workspace.labelsPerPageOptions.find(
+    (option) => option === workspace.labelsPerPage,
+  );
 
   useSuccessToast(workspace.successMessage);
 
@@ -104,179 +131,264 @@ export function ShippingLabelsToolScreen({
       isBusy={workspace.isPreparing}
       onSelectFile={workspace.handleFileSelection}
       onClearSelection={workspace.handleClearSelection}
-      helperText={workspace.helperText}
+      inputPanelClassName={
+        workspace.selectedFileEntry ? 'space-y-3 xl:w-[19rem]' : undefined
+      }
+      inputOptionsLayoutClassName={
+        workspace.selectedFileEntry
+          ? 'grid gap-8 xl:max-w-[58rem] xl:grid-cols-[19rem_minmax(0,32rem)] xl:items-start xl:gap-12'
+          : undefined
+      }
       optionsPanel={
         workspace.selectedFileEntry ? (
-          <div className="space-y-6">
-            <FieldSet className="max-w-sm">
-              <div className="space-y-2">
-                <FieldLabel htmlFor={outputPageSizeInputId}>
-                  Output page size
-                </FieldLabel>
-                <Select
-                  value={workspace.outputPageSize}
-                  onValueChange={(value) => {
-                    const nextPageSize = OUTPUT_PAGE_SIZE_OPTIONS.find(
-                      (option) => option.value === value,
-                    )?.value;
-
-                    if (nextPageSize) {
-                      workspace.setOutputPageSize(nextPageSize);
-                    }
-                  }}
-                  disabled={workspace.isPreparing}
-                >
-                  <SelectTrigger id={outputPageSizeInputId} className="w-full">
-                    <SelectValue>
-                      {selectedOutputPageSizeOption
-                        ? renderOutputPageSizeLabel(
-                            selectedOutputPageSizeOption.value,
-                          )
-                        : 'Select page size'}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent align="start">
-                    {OUTPUT_PAGE_SIZE_OPTIONS.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {renderOutputPageSizeLabel(option.value)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FieldDescription>
-                  {
-                    OUTPUT_PAGE_SIZE_OPTIONS.find(
-                      (option) => option.value === workspace.outputPageSize,
-                    )?.description
-                  }
-                </FieldDescription>
+          <div className="space-y-8 xl:pl-2">
+            <section className="space-y-4">
+              <div className="space-y-1">
+                <h2 className="text-xl font-semibold tracking-tight">Output</h2>
+                <p className="text-sm text-muted-foreground">
+                  Choose the paper size, then set how many {BRAND_LABELS[brand]}{' '}
+                  labels should fit on each sheet.
+                </p>
               </div>
-            </FieldSet>
 
-            <FieldSet className="max-w-xl">
-              <div className="space-y-3">
-                <FieldLabel>Sorting</FieldLabel>
+              <FieldSet className="max-w-sm">
+                <FieldGroup className="gap-5">
+                  <div className="space-y-2">
+                    <FieldLabel htmlFor={outputPageSizeInputId}>
+                      Paper size
+                    </FieldLabel>
+                    <Select
+                      value={workspace.outputPageSize}
+                      onValueChange={(value) => {
+                        const nextPageSize = OUTPUT_PAGE_SIZE_OPTIONS.find(
+                          (option) => option.value === value,
+                        )?.value;
 
-                <Field
-                  orientation="horizontal"
-                  className="items-start rounded-xl border border-border px-4 py-3"
-                >
-                  <Checkbox
-                    checked={workspace.pickupPartnerDirection !== null}
-                    onCheckedChange={(checked) => {
-                      workspace.setPickupPartnerDirection(
-                        checked ? 'desc' : null,
-                      );
-                    }}
-                    disabled={workspace.isPreparing}
-                    aria-label="Sort labels by pickup partner"
-                  />
-                  <FieldContent>
-                    <FieldLabel>Sort by pickup partner</FieldLabel>
+                        if (nextPageSize) {
+                          workspace.setOutputPageSize(nextPageSize);
+                        }
+                      }}
+                      disabled={workspace.isPreparing}
+                    >
+                      <SelectTrigger
+                        id={outputPageSizeInputId}
+                        className="w-full"
+                      >
+                        <SelectValue>
+                          {selectedOutputPageSizeOption
+                            ? renderOutputPageSizeLabel(
+                                selectedOutputPageSizeOption.value,
+                              )
+                            : 'Select page size'}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent align="start">
+                        {OUTPUT_PAGE_SIZE_OPTIONS.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {renderOutputPageSizeLabel(option.value)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FieldDescription>
-                      Group labels by detected pickup partner in one fixed
-                      order.
+                      {
+                        OUTPUT_PAGE_SIZE_OPTIONS.find(
+                          (option) => option.value === workspace.outputPageSize,
+                        )?.description
+                      }
                     </FieldDescription>
-                  </FieldContent>
-                </Field>
+                  </div>
 
-                <Field
-                  orientation="horizontal"
-                  className="items-start rounded-xl border border-border px-4 py-3"
-                >
-                  <Checkbox
-                    checked={workspace.skuDirection !== null}
-                    onCheckedChange={(checked) => {
-                      workspace.setSkuDirection(checked ? 'desc' : null);
-                    }}
-                    disabled={workspace.isPreparing}
-                    aria-label="Sort labels by SKU"
+                  {workspace.outputPageSize !== 'auto' ? (
+                    <div className="space-y-2">
+                      <FieldLabel htmlFor={labelsPerPageInputId}>
+                        Labels per page
+                      </FieldLabel>
+                      <Select
+                        value={String(workspace.labelsPerPage)}
+                        onValueChange={(value) => {
+                          if (!value) {
+                            return;
+                          }
+
+                          const nextLabelsPerPage = Number.parseInt(value, 10);
+
+                          if (Number.isFinite(nextLabelsPerPage)) {
+                            workspace.setLabelsPerPage(nextLabelsPerPage);
+                          }
+                        }}
+                        disabled={workspace.isPreparing}
+                      >
+                        <SelectTrigger
+                          id={labelsPerPageInputId}
+                          className="w-full"
+                        >
+                          <SelectValue>
+                            {selectedLabelsPerPage
+                              ? `${String(selectedLabelsPerPage)} per sheet`
+                              : 'Select count'}
+                          </SelectValue>
+                        </SelectTrigger>
+                        <SelectContent align="start">
+                          {workspace.labelsPerPageOptions.map((option) => (
+                            <SelectItem key={option} value={String(option)}>
+                              {String(option)} per sheet
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FieldDescription>
+                        Up to{' '}
+                        {String(workspace.labelsPerPageOptions.at(-1) ?? 1)}{' '}
+                        {BRAND_LABELS[brand]} label
+                        {workspace.labelsPerPageOptions.at(-1) === 1
+                          ? ''
+                          : 's'}{' '}
+                        fit on this page size before the text becomes too small.
+                      </FieldDescription>
+                    </div>
+                  ) : null}
+                </FieldGroup>
+              </FieldSet>
+
+              {workspace.showSortingSection ? (
+                <FieldSet className="max-w-xl">
+                  <FieldLegend variant="label">Sorting</FieldLegend>
+                  <FieldDescription>
+                    Optional sorting rules for the prepared label order.
+                  </FieldDescription>
+                  <FieldGroup className="max-w-md gap-4">
+                    {workspace.showPickupPartnerSort ? (
+                      <Field orientation="horizontal">
+                        <Checkbox
+                          id={pickupPartnerSortInputId}
+                          checked={workspace.pickupPartnerDirection !== null}
+                          onCheckedChange={(checked) => {
+                            workspace.setPickupPartnerDirection(
+                              checked ? 'desc' : null,
+                            );
+                          }}
+                          disabled={workspace.isPreparing}
+                          aria-label="Sort labels by pickup partner"
+                        />
+                        <FieldContent>
+                          <FieldLabel htmlFor={pickupPartnerSortInputId}>
+                            Sort by pickup partner
+                          </FieldLabel>
+                          <FieldDescription>
+                            Group labels by detected pickup partner in one fixed
+                            order.
+                          </FieldDescription>
+                        </FieldContent>
+                      </Field>
+                    ) : null}
+
+                    {workspace.showSkuSort ? (
+                      <Field orientation="horizontal">
+                        <Checkbox
+                          id={skuSortInputId}
+                          checked={workspace.skuDirection !== null}
+                          onCheckedChange={(checked) => {
+                            workspace.setSkuDirection(checked ? 'desc' : null);
+                          }}
+                          disabled={workspace.isPreparing}
+                          aria-label="Sort labels by SKU"
+                        />
+                        <FieldContent>
+                          <FieldLabel htmlFor={skuSortInputId}>
+                            Sort by SKU
+                          </FieldLabel>
+                          <FieldDescription>
+                            Order labels by detected SKU in one fixed order.
+                          </FieldDescription>
+                        </FieldContent>
+                      </Field>
+                    ) : null}
+                  </FieldGroup>
+                </FieldSet>
+              ) : null}
+
+              {workspace.errorMessage ? (
+                <Alert variant="destructive" className="max-w-xl">
+                  <HugeiconsIcon
+                    icon={AlertCircleIcon}
+                    size={18}
+                    strokeWidth={2}
                   />
-                  <FieldContent>
-                    <FieldLabel>Sort by SKU</FieldLabel>
-                    <FieldDescription>
-                      Order labels by detected SKU in one fixed order.
-                    </FieldDescription>
-                  </FieldContent>
-                </Field>
-              </div>
-            </FieldSet>
-          </div>
-        ) : null
-      }
-      actionBar={
-        workspace.selectedFileEntry ? (
-          <div className="space-y-2">
-            <Button
-              disabled={workspace.prepareButtonDisabled}
-              onClick={workspace.handlePrepare}
-            >
-              {workspace.prepareButtonLabel}
-            </Button>
+                  <AlertTitle>Unable to complete action</AlertTitle>
+                  <AlertDescription>{workspace.errorMessage}</AlertDescription>
+                </Alert>
+              ) : null}
+            </section>
+
+            <div className="pt-2">
+              <Button
+                disabled={workspace.prepareButtonDisabled}
+                onClick={workspace.handlePrepare}
+                className="w-full sm:w-auto"
+              >
+                {workspace.isPreparing ? (
+                  <Spinner data-icon="inline-start" />
+                ) : null}
+                {workspace.prepareButtonLabel}
+              </Button>
+            </div>
           </div>
         ) : null
       }
       outputPanel={
         workspace.resultSummary ? (
-          <Card className="overflow-visible border border-border/70 bg-gradient-to-br from-card via-card to-muted/20">
-            <CardHeader className="gap-3">
-              <div className="flex flex-wrap items-center justify-between gap-3">
+          <section className="space-y-8 border-t border-border/70 pt-8">
+            <section className="space-y-4">
+              <h3 className="text-sm font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                Task Summary
+              </h3>
+              <dl className="grid gap-x-8 gap-y-4 sm:grid-cols-2 xl:grid-cols-4">
                 <div className="space-y-1">
-                  <CardTitle>Label pages ready</CardTitle>
-                  <CardDescription>
-                    The prepared label PDF is ready to save.
-                  </CardDescription>
+                  <dt className="text-sm text-muted-foreground">
+                    Processing time
+                  </dt>
+                  <dd className="text-2xl font-semibold">
+                    {formatDuration(workspace.resultSummary.elapsedMs)}
+                  </dd>
                 </div>
-                <Badge variant="outline">
-                  {BRAND_LABELS[brand]} ·{' '}
-                  {OUTPUT_PAGE_SIZE_OPTIONS.find(
-                    (option) => option.value === workspace.outputPageSize,
-                  )?.value === 'auto'
-                    ? 'Auto'
-                    : renderOutputPageSizeLabel(workspace.outputPageSize)}
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-3 sm:grid-cols-3">
-                <div className="rounded-2xl bg-primary/6 p-4 ring-1 ring-primary/10">
-                  <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">
-                    Processed
-                  </p>
-                  <p className="mt-2 text-3xl font-semibold">
-                    {String(workspace.resultSummary.pagesProcessed)}
-                  </p>
-                </div>
-                <div className="rounded-2xl bg-emerald-500/8 p-4 ring-1 ring-emerald-500/15">
-                  <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">
-                    Prepared
-                  </p>
-                  <p className="mt-2 text-3xl font-semibold">
+                <div className="space-y-1">
+                  <dt className="text-sm text-muted-foreground">
+                    Labels prepared
+                  </dt>
+                  <dd className="text-2xl font-semibold">
                     {String(workspace.resultSummary.labelsPrepared)}
-                  </p>
+                  </dd>
                 </div>
-                <div className="rounded-2xl bg-amber-500/8 p-4 ring-1 ring-amber-500/15">
-                  <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">
-                    Skipped
-                  </p>
-                  <p className="mt-2 text-3xl font-semibold">
+                <div className="space-y-1">
+                  <dt className="text-sm text-muted-foreground">
+                    Pages created
+                  </dt>
+                  <dd className="text-2xl font-semibold">
+                    {String(workspace.resultSummary.outputPagesCreated)}
+                  </dd>
+                </div>
+                <div className="space-y-1">
+                  <dt className="text-sm text-muted-foreground">
+                    Pages skipped
+                  </dt>
+                  <dd className="text-2xl font-semibold">
                     {String(workspace.resultSummary.pagesSkipped)}
+                  </dd>
+                  <p className="text-sm leading-6 text-muted-foreground">
+                    {workspace.resultSummary.skippedPageNumbers.length > 0
+                      ? formatPageList(
+                          workspace.resultSummary.skippedPageNumbers,
+                        )
+                      : 'None'}
                   </p>
                 </div>
-              </div>
-              <div className="rounded-2xl border border-border/70 bg-background/80 p-4">
-                <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">
-                  Output file
-                </p>
-                <p className="mt-2 break-all text-sm font-medium">
-                  {workspace.resultSummary.fileName}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+              </dl>
+            </section>
+          </section>
         ) : null
       }
-      errorMessage={workspace.errorMessage}
+      errorMessage={null}
     />
   );
 }

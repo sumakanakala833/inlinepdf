@@ -1,5 +1,6 @@
 import { PdfFileSelector } from '~/components/pdf-file-selector';
 import { Button } from '~/components/ui/button';
+import { Spinner } from '~/components/ui/spinner';
 import { MultiFileToolWorkspace } from '~/shared/tool-ui/multi-file-tool-workspace';
 import { useSuccessToast } from '~/shared/tool-ui/use-success-toast';
 
@@ -53,6 +54,7 @@ export function MergeToolScreen() {
             disabled={!workspace.canMerge}
             onClick={workspace.handleMerge}
           >
+            {workspace.isMerging ? <Spinner data-icon="inline-start" /> : null}
             {workspace.mergeButtonLabel}
           </Button>
         </div>

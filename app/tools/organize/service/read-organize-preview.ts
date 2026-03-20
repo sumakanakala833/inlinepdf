@@ -1,6 +1,7 @@
 import {
   cleanupPdfJsPage,
   openPdfJsDocument,
+  type PdfJsDocumentSession,
 } from '~/platform/pdf/pdfjs-session';
 import type { OrganizePreviewSession } from '~/tools/organize/models';
 import {
@@ -24,7 +25,7 @@ export async function readOrganizePreview(
   file: File,
 ): Promise<OrganizePreviewSession> {
   await validatePdfFile(file);
-  let session;
+  let session: PdfJsDocumentSession;
   try {
     session = await openPdfJsDocument(file);
   } catch {

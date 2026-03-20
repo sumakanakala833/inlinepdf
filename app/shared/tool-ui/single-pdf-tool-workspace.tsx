@@ -13,8 +13,9 @@ interface SinglePdfToolWorkspaceProps {
   selectorAriaLabel: string;
   selectedFileEntry: QueuedFile | null;
   isBusy: boolean;
-  helperText?: string;
+  inputPanelClassName?: string;
   optionsPanel?: ReactNode;
+  inputOptionsLayoutClassName?: string;
   actionBar?: ReactNode;
   outputPanel?: ReactNode;
   errorMessage?: string | null;
@@ -30,8 +31,9 @@ export function SinglePdfToolWorkspace({
   selectorAriaLabel,
   selectedFileEntry,
   isBusy,
-  helperText,
+  inputPanelClassName,
   optionsPanel,
+  inputOptionsLayoutClassName,
   actionBar,
   outputPanel,
   errorMessage,
@@ -44,13 +46,13 @@ export function SinglePdfToolWorkspace({
       title={title}
       description={description}
       titleIcon={titleIcon}
-      helperText={helperText}
       inputPanel={
         selectedFileEntry ? (
           <FileQueueList
             files={[selectedFileEntry]}
             disabled={isBusy}
             showIndexBadge={showIndexBadge}
+            listClassName="grid grid-cols-1 items-start gap-3 [contain:layout]"
             onRemove={() => {
               onClearSelection();
             }}
@@ -65,7 +67,9 @@ export function SinglePdfToolWorkspace({
           />
         )
       }
+      inputPanelClassName={inputPanelClassName}
       optionsPanel={optionsPanel}
+      inputOptionsLayoutClassName={inputOptionsLayoutClassName}
       actionBar={actionBar}
       outputPanel={outputPanel}
       errorMessage={errorMessage}

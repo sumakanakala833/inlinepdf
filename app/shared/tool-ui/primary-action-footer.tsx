@@ -1,11 +1,11 @@
 import { Button } from '~/components/ui/button';
+import { Spinner } from '~/components/ui/spinner';
 
 interface PrimaryActionFooterProps {
   actionLabel: string;
   busyLabel: string;
   disabled?: boolean;
   isBusy?: boolean;
-  helperText?: string;
   progressText?: string;
   onAction: () => Promise<void>;
 }
@@ -15,7 +15,6 @@ export function PrimaryActionFooter({
   busyLabel,
   disabled = false,
   isBusy = false,
-  helperText,
   progressText,
   onAction,
 }: PrimaryActionFooterProps) {
@@ -27,15 +26,13 @@ export function PrimaryActionFooter({
           void onAction();
         }}
       >
+        {isBusy ? <Spinner data-icon="inline-start" /> : null}
         {isBusy ? busyLabel : actionLabel}
       </Button>
       {progressText ? (
         <p className="text-sm text-muted-foreground" aria-live="polite">
           {progressText}
         </p>
-      ) : null}
-      {helperText ? (
-        <p className="text-sm text-muted-foreground">{helperText}</p>
       ) : null}
     </div>
   );

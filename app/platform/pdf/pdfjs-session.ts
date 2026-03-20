@@ -1,10 +1,26 @@
-import { loadPdfJsModule, type PdfJsModule } from './load-pdfjs';
+import { loadPdfJsModule } from './load-pdfjs';
+import type {
+  PDFDocumentLoadingTask,
+  PDFDocumentProxy,
+  PDFPageProxy,
+  RenderTask,
+} from 'pdfjs-dist/types/src/display/api';
+import type { PageViewport } from 'pdfjs-dist/types/src/display/display_utils';
 
-export type PdfJsLoadingTask = ReturnType<PdfJsModule['getDocument']>;
-export type PdfJsDocument = Awaited<PdfJsLoadingTask['promise']>;
+export interface PdfJsRuntimeModule {
+  OPS: {
+    setFont: number;
+  };
+}
+
+export type PdfJsViewport = PageViewport;
+export type PdfJsRenderTask = RenderTask;
+export type PdfJsPage = PDFPageProxy;
+export type PdfJsDocument = PDFDocumentProxy;
+export type PdfJsLoadingTask = PDFDocumentLoadingTask;
 
 export interface PdfJsDocumentSession {
-  module: PdfJsModule;
+  module: PdfJsRuntimeModule;
   document: PdfJsDocument;
   loadingTask: PdfJsLoadingTask;
   destroy: () => Promise<void>;
@@ -34,12 +50,13 @@ export async function openPdfJsDocument(
     loadPdfJsModule(),
   ]);
   const loadingTask = pdfjs.getDocument({ data: bytes });
+  const module: PdfJsRuntimeModule = pdfjs;
 
   try {
     const document = await loadingTask.promise;
 
     return {
-      module: pdfjs,
+      module,
       document,
       loadingTask,
       async destroy() {

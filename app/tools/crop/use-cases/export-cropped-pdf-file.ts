@@ -28,6 +28,24 @@ function normalizeSelectedPages(pageNumbers: number[]): number[] {
     .sort((a, b) => a - b);
 }
 
+function readPdfPoint(
+  point: unknown,
+  pageNumber: number,
+): [number, number] {
+  if (
+    Array.isArray(point) &&
+    point.length >= 2 &&
+    typeof point[0] === 'number' &&
+    typeof point[1] === 'number'
+  ) {
+    return [point[0], point[1]];
+  }
+
+  throw new Error(
+    `Unable to map crop coordinates for page ${String(pageNumber)}.`,
+  );
+}
+
 export async function exportCroppedPdf({
   file,
   selectedPages,
@@ -73,7 +91,7 @@ export async function exportCroppedPdf({
           height: viewport.height,
           viewBox: viewport.viewBox,
           convertToPdfPoint: (x, y) =>
-            viewport.convertToPdfPoint(x, y) as [number, number],
+            readPdfPoint(viewport.convertToPdfPoint(x, y), pageNumber),
         });
         const width = boundingBox.right - boundingBox.left;
         const height = boundingBox.top - boundingBox.bottom;

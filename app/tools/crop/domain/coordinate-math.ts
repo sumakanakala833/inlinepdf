@@ -6,7 +6,7 @@ interface ViewportLike {
   width: number;
   height: number;
   viewBox: number[];
-  convertToPdfPoint: (x: number, y: number) => [number, number];
+  convertToPdfPoint: (x: number, y: number) => number[];
 }
 
 export interface PdfBoundingBox {

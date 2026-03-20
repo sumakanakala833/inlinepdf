@@ -7,17 +7,13 @@ import {
   Outlet,
   Scripts,
   ScrollRestoration,
-  useFetchers,
   useLocation,
-  useNavigation,
   useRouteLoaderData,
 } from 'react-router';
 
 import type { Route } from './+types/root';
 import rootStylesHref from './app.css?url';
 import { Shell } from './components/layout/shell';
-import { Alert, AlertDescription, AlertTitle } from './components/ui/alert';
-import { Spinner } from './components/ui/spinner';
 import { AppLink } from './shared/navigation/app-link';
 import { cn } from './lib/utils';
 import {
@@ -39,27 +35,6 @@ export function loader({ request }: Route.LoaderArgs) {
 export const links: Route.LinksFunction = () => [
   { rel: 'stylesheet', href: rootStylesHref },
 ];
-
-function hasPendingMutationFetcher(
-  fetchers: ReturnType<typeof useFetchers>,
-): boolean {
-  return fetchers.some(
-    (fetcher) =>
-      fetcher.state !== 'idle' &&
-      fetcher.formMethod != null &&
-      fetcher.formMethod.toUpperCase() !== 'GET',
-  );
-}
-
-function hasPendingMutationNavigation(
-  navigation: ReturnType<typeof useNavigation>,
-): boolean {
-  return (
-    navigation.state !== 'idle' &&
-    navigation.formMethod != null &&
-    navigation.formMethod.toUpperCase() !== 'GET'
-  );
-}
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const rootData = useRouteLoaderData<typeof loader>('root');
@@ -124,16 +99,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
-  const navigation = useNavigation();
   const location = useLocation();
-  const fetchers = useFetchers();
-  const isPending =
-    hasPendingMutationNavigation(navigation) ||
-    hasPendingMutationFetcher(fetchers);
   const isHomeRoute = location.pathname === '/';
   const isLegalRoute = /^\/(privacy|terms)(\/|$)/.test(location.pathname);
-  const isPdfInfoRoute = /^\/info(\/|$)/.test(location.pathname);
-  const showGlobalPending = isPending && !isPdfInfoRoute;
 
   return (
     <Shell
@@ -146,15 +114,6 @@ export default function App() {
           'from-muted/35 via-background to-background bg-linear-to-b',
       )}
     >
-      {showGlobalPending ? (
-        <div aria-live="polite" className="min-h-14">
-          <Alert className="mb-6">
-            <Spinner className="h-4 w-4" />
-            <AlertTitle>Working</AlertTitle>
-            <AlertDescription>Processing the current action.</AlertDescription>
-          </Alert>
-        </div>
-      ) : null}
       <Outlet />
     </Shell>
   );

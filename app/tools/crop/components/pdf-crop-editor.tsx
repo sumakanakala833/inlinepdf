@@ -17,6 +17,7 @@ import {
   cleanupPdfJsPage,
   openPdfJsDocument,
   type PdfJsDocument,
+  type PdfJsRenderTask,
 } from '~/platform/pdf/pdfjs-session';
 import {
   normalizedToPercentRect,
@@ -128,9 +129,7 @@ export function PdfCropEditor({
     width: 0,
     height: 0,
   });
-  const [pdfDocument, setPdfDocument] = useState<PdfDocumentProxyLike | null>(
-    null,
-  );
+  const [pdfDocument, setPdfDocument] = useState<PdfJsDocument | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isRendering, setIsRendering] = useState(false);
   const [currentCrop, setCurrentCrop] = useState<PercentCrop | undefined>(
@@ -177,9 +176,8 @@ export function PdfCropEditor({
 
   useEffect(() => {
     const cancellation = { cancelled: false };
-    let loadedSession:
-      | Awaited<ReturnType<typeof openPdfJsDocument>>
-      | null = null;
+    let loadedSession: Awaited<ReturnType<typeof openPdfJsDocument>> | null =
+      null;
 
     setPdfDocument(null);
     setErrorMessage(null);
@@ -218,12 +216,7 @@ export function PdfCropEditor({
     }
 
     const cancellation = { cancelled: false };
-    let renderTask:
-      | {
-          cancel?: () => void;
-          promise: Promise<void>;
-        }
-      | null = null;
+    let renderTask: PdfJsRenderTask | null = null;
 
     void (async () => {
       setIsRendering(true);
@@ -310,7 +303,7 @@ export function PdfCropEditor({
 
     return () => {
       cancellation.cancelled = true;
-      renderTask?.cancel?.();
+      renderTask?.cancel();
     };
   }, [
     containerSize.height,

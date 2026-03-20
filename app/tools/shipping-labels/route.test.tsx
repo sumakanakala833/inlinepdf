@@ -14,6 +14,7 @@ vi.mock('./use-cases/prepare-shipping-labels', () => ({
     file: File | null;
     brand: string;
     outputPageSize: string | null;
+    labelsPerPage: string | null;
     pickupPartnerDirection: string | null;
     skuDirection: string | null;
   }) => {
@@ -63,15 +64,16 @@ describe('shipping labels route clientAction', () => {
     });
   });
 
-  it('surfaces placeholder-brand errors from the preparation use case', async () => {
+  it('surfaces use-case errors for Amazon requests', async () => {
     const formData = new FormData();
     formData.set(
       'file',
       new File(['%PDF-1.4'], 'amazon.pdf', { type: 'application/pdf' }),
     );
     formData.set('outputPageSize', 'a4');
+    formData.set('labelsPerPage', '4');
     prepareShippingLabelsMock.mockRejectedValueOnce(
-      new Error('Amazon labels are not available yet.'),
+      new Error('Choose 4 or fewer labels per a4 page for Amazon labels.'),
     );
 
     const result = await amazonClientAction({
@@ -80,7 +82,7 @@ describe('shipping labels route clientAction', () => {
 
     expect(result).toEqual({
       ok: false,
-      message: 'Amazon labels are not available yet.',
+      message: 'Choose 4 or fewer labels per a4 page for Amazon labels.',
     });
   });
 
@@ -91,6 +93,7 @@ describe('shipping labels route clientAction', () => {
       new File(['%PDF-1.4'], 'meesho.pdf', { type: 'application/pdf' }),
     );
     formData.set('outputPageSize', 'auto');
+    formData.set('labelsPerPage', '1');
     prepareShippingLabelsMock.mockRejectedValueOnce(
       new Error('No Meesho label pages were found in this PDF.'),
     );
@@ -112,6 +115,7 @@ describe('shipping labels route clientAction', () => {
       new File(['%PDF-1.4'], 'meesho.pdf', { type: 'application/pdf' }),
     );
     formData.set('outputPageSize', 'a4');
+    formData.set('labelsPerPage', '4');
     formData.set('pickupPartnerDirection', 'asc');
     formData.set('skuDirection', 'desc');
     prepareShippingLabelsMock.mockResolvedValueOnce({
@@ -119,7 +123,10 @@ describe('shipping labels route clientAction', () => {
       fileName: 'meesho-meesho-labels-2026-03-17.pdf',
       pagesProcessed: 10,
       labelsPrepared: 8,
+      outputPagesCreated: 2,
       pagesSkipped: 2,
+      skippedPageNumbers: [2, 7],
+      elapsedMs: 1640,
     });
 
     const result = await meeshoClientAction({
@@ -132,6 +139,7 @@ describe('shipping labels route clientAction', () => {
           file: File;
           brand: string;
           outputPageSize: string;
+          labelsPerPage: string;
           pickupPartnerDirection: string | null;
           skuDirection: string | null;
         }
@@ -139,17 +147,21 @@ describe('shipping labels route clientAction', () => {
     expect(firstCall).toMatchObject({
       brand: 'meesho',
       outputPageSize: 'a4',
+      labelsPerPage: '4',
       pickupPartnerDirection: 'asc',
       skuDirection: 'desc',
     });
     expect(firstCall?.file).toBeInstanceOf(File);
     expect(result).toEqual({
       ok: true,
-      message: 'Prepared 8 label pages.',
+      message: 'Prepared 8 labels on 2 pages.',
       result: {
         pagesProcessed: 10,
         labelsPrepared: 8,
+        outputPagesCreated: 2,
         pagesSkipped: 2,
+        skippedPageNumbers: [2, 7],
+        elapsedMs: 1640,
         fileName: 'meesho-meesho-labels-2026-03-17.pdf',
       },
     });
